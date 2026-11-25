@@ -1,0 +1,470 @@
+{
+  "entities": {
+    "UserProfile": {
+      "title": "UserProfile",
+      "description": "Authenticated user profile and server-enforced RBAC role.",
+      "type": "object",
+      "properties": {
+        "uid": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "email": {
+          "type": "string",
+          "format": "email",
+          "minLength": 3,
+          "maxLength": 256
+        },
+        "displayName": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 120
+        },
+        "photoURL": {
+          "type": "string",
+          "maxLength": 512
+        },
+        "role": {
+          "type": "string",
+          "enum": ["EMPLOYEE", "MANAGER", "ADMIN"]
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": ["uid", "email", "displayName", "role", "createdAt", "updatedAt"]
+    },
+    "InvoiceRecord": {
+      "title": "InvoiceRecord",
+      "description": "Processed invoice metadata, AI structured extraction output, validation findings, deterministic decision, and human approval disposition.",
+      "type": "object",
+      "properties": {
+        "invoiceId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "ownerId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "ownerEmail": {
+          "type": "string",
+          "maxLength": 256
+        },
+        "ownerName": {
+          "type": "string",
+          "maxLength": 120
+        },
+        "fileName": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "mimeType": {
+          "type": "string",
+          "maxLength": 100
+        },
+        "fileSize": {
+          "type": "number"
+        },
+        "storageMode": {
+          "type": "string",
+          "enum": ["FIRESTORE_PREVIEW", "SERVER_DISK", "SYNTHETIC_DEMO"]
+        },
+        "isDemo": {
+          "type": "boolean"
+        },
+        "demoScenario": {
+          "type": "string",
+          "maxLength": 80
+        },
+        "invoiceNumber": {
+          "type": "string",
+          "maxLength": 120
+        },
+        "vendorName": {
+          "type": "string",
+          "maxLength": 200
+        },
+        "vendorDetails": {
+          "type": "string",
+          "maxLength": 500
+        },
+        "invoiceDate": {
+          "type": "string",
+          "maxLength": 40
+        },
+        "dueDate": {
+          "type": "string",
+          "maxLength": 40
+        },
+        "currency": {
+          "type": "string",
+          "maxLength": 10
+        },
+        "subtotal": {
+          "type": "number"
+        },
+        "taxAmount": {
+          "type": "number"
+        },
+        "totalAmount": {
+          "type": "number"
+        },
+        "inrEquivalent": {
+          "type": "number"
+        },
+        "lineItems": {
+          "type": "array"
+        },
+        "confidence": {
+          "type": "number"
+        },
+        "missingFields": {
+          "type": "array"
+        },
+        "riskFlags": {
+          "type": "array"
+        },
+        "riskLevel": {
+          "type": "string",
+          "enum": ["LOW", "MEDIUM", "HIGH"]
+        },
+        "recommendedAction": {
+          "type": "string",
+          "enum": ["AUTO_APPROVE", "MANAGER_REVIEW", "ADMIN_REVIEW", "ESCALATE"]
+        },
+        "aiReason": {
+          "type": "string",
+          "maxLength": 1000
+        },
+        "arithmeticValid": {
+          "type": "boolean"
+        },
+        "taxValid": {
+          "type": "boolean"
+        },
+        "datesValid": {
+          "type": "boolean"
+        },
+        "duplicateDetected": {
+          "type": "boolean"
+        },
+        "escalationReasons": {
+          "type": "array"
+        },
+        "ruleChecks": {
+          "type": "array"
+        },
+        "status": {
+          "type": "string",
+          "enum": ["AUTO_APPROVED", "PENDING_MANAGER", "PENDING_ADMIN", "ESCALATED", "HUMAN_APPROVED", "REJECTED"]
+        },
+        "assignedTier": {
+          "type": "string",
+          "enum": ["NONE", "MANAGER", "ADMIN"]
+        },
+        "reviewerId": {
+          "type": "string",
+          "maxLength": 128
+        },
+        "reviewerEmail": {
+          "type": "string",
+          "maxLength": 256
+        },
+        "reviewerRole": {
+          "type": "string",
+          "maxLength": 40
+        },
+        "reviewComment": {
+          "type": "string",
+          "maxLength": 1000
+        },
+        "reviewedAt": {
+          "type": "string",
+          "maxLength": 64
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "invoiceId",
+        "ownerId",
+        "ownerEmail",
+        "fileName",
+        "mimeType",
+        "fileSize",
+        "storageMode",
+        "isDemo",
+        "currency",
+        "confidence",
+        "missingFields",
+        "riskFlags",
+        "riskLevel",
+        "recommendedAction",
+        "aiReason",
+        "arithmeticValid",
+        "taxValid",
+        "datesValid",
+        "duplicateDetected",
+        "escalationReasons",
+        "status",
+        "assignedTier",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "InvoiceDocument": {
+      "title": "InvoiceDocument",
+      "description": "Protected invoice document payload for preview inside authenticated inspection views.",
+      "type": "object",
+      "properties": {
+        "invoiceId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "ownerId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "fileName": {
+          "type": "string",
+          "maxLength": 256
+        },
+        "mimeType": {
+          "type": "string",
+          "maxLength": 100
+        },
+        "dataUrl": {
+          "type": "string",
+          "maxLength": 750000
+        },
+        "isDemo": {
+          "type": "boolean"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": ["invoiceId", "ownerId", "fileName", "mimeType", "dataUrl", "isDemo", "createdAt"]
+    },
+    "InvoiceFingerprint": {
+      "title": "InvoiceFingerprint",
+      "description": "Non-PII vendor and invoice number fingerprint used for duplicate invoice detection.",
+      "type": "object",
+      "properties": {
+        "fingerprintId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "vendorKey": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "invoiceNumberKey": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 120
+        },
+        "invoiceId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "ownerId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "isDemo": {
+          "type": "boolean"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": ["fingerprintId", "vendorKey", "invoiceNumberKey", "invoiceId", "ownerId", "isDemo", "createdAt"]
+    },
+    "WorkflowRuleConfig": {
+      "title": "WorkflowRuleConfig",
+      "description": "Deterministic policy thresholds and automation controls configured by Admins.",
+      "type": "object",
+      "properties": {
+        "ruleId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "autoApproveMaxInr": {
+          "type": "number"
+        },
+        "managerMaxInr": {
+          "type": "number"
+        },
+        "minConfidence": {
+          "type": "number"
+        },
+        "requireTaxConsistency": {
+          "type": "boolean"
+        },
+        "blockDuplicateVendorInvoices": {
+          "type": "boolean"
+        },
+        "updatedBy": {
+          "type": "string",
+          "maxLength": 256
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "ruleId",
+        "autoApproveMaxInr",
+        "managerMaxInr",
+        "minConfidence",
+        "requireTaxConsistency",
+        "blockDuplicateVendorInvoices",
+        "updatedBy",
+        "updatedAt"
+      ]
+    },
+    "AuditLogEntry": {
+      "title": "AuditLogEntry",
+      "description": "Immutable append-only audit trail entry recording every workflow action.",
+      "type": "object",
+      "properties": {
+        "logId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "invoiceId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "invoiceOwnerId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "invoiceNumber": {
+          "type": "string",
+          "maxLength": 120
+        },
+        "action": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 80
+        },
+        "actorUid": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "actorEmail": {
+          "type": "string",
+          "maxLength": 256
+        },
+        "actorRole": {
+          "type": "string",
+          "enum": ["EMPLOYEE", "MANAGER", "ADMIN", "SYSTEM"]
+        },
+        "previousStatus": {
+          "type": "string",
+          "maxLength": 40
+        },
+        "newStatus": {
+          "type": "string",
+          "maxLength": 40
+        },
+        "reason": {
+          "type": "string",
+          "maxLength": 1000
+        },
+        "isDemo": {
+          "type": "boolean"
+        },
+        "timestamp": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "logId",
+        "invoiceId",
+        "invoiceOwnerId",
+        "action",
+        "actorUid",
+        "actorEmail",
+        "actorRole",
+        "previousStatus",
+        "newStatus",
+        "reason",
+        "isDemo",
+        "timestamp"
+      ]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": { "$ref": "#/entities/UserProfile" },
+      "description": "User profiles and RBAC role assignments."
+    },
+    "/invoices/{invoiceId}": {
+      "schema": { "$ref": "#/entities/InvoiceRecord" },
+      "description": "Invoices, Gemini extraction results, validation checks, and approval decisions."
+    },
+    "/invoice_documents/{invoiceId}": {
+      "schema": { "$ref": "#/entities/InvoiceDocument" },
+      "description": "Protected invoice document previews isolated from public reads."
+    },
+    "/invoice_fingerprints/{fingerprintId}": {
+      "schema": { "$ref": "#/entities/InvoiceFingerprint" },
+      "description": "Non-PII vendor and invoice number fingerprints for duplicate detection."
+    },
+    "/workflow_rules/{ruleId}": {
+      "schema": { "$ref": "#/entities/WorkflowRuleConfig" },
+      "description": "Admin-configurable deterministic workflow thresholds and validation rules."
+    },
+    "/audit_logs/{logId}": {
+      "schema": { "$ref": "#/entities/AuditLogEntry" },
+      "description": "Immutable append-only audit log entries."
+    }
+  }
+}

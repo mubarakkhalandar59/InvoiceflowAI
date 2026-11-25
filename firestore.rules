@@ -1,0 +1,347 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Global safety net: deny everything by default
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function emailVerified() {
+      return isSignedIn() && request.auth.token.email_verified == true;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() >= 1 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isBootstrappedAdmin() {
+      return emailVerified()
+        && ('email' in request.auth.token)
+        && request.auth.token.email is string
+        && request.auth.token.email.lower() == 'mubarakkhalandar59@gmail.com';
+    }
+
+    function userDocExists() {
+      return exists(/databases/$(database)/documents/users/$(request.auth.uid));
+    }
+
+    function userRole() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role;
+    }
+
+    function isAdmin() {
+      return emailVerified() && (isBootstrappedAdmin() || (userDocExists() && userRole() == 'ADMIN'));
+    }
+
+    function isManager() {
+      return emailVerified() && userDocExists() && userRole() == 'MANAGER';
+    }
+
+    function isManagerOrAdmin() {
+      return isAdmin() || isManager();
+    }
+
+    function isOwner(userId) {
+      return emailVerified() && request.auth.uid == userId;
+    }
+
+    function isValidString(val, minLen, maxLen) {
+      return val is string && val.size() >= minLen && val.size() <= maxLen;
+    }
+
+    function isValidOptionalString(data, key, maxLen) {
+      return !(key in data) || (data[key] is string && data[key].size() <= maxLen);
+    }
+
+    function isValidOptionalNumber(data, key) {
+      return !(key in data) || (data[key] is number);
+    }
+
+    function isValidUser(data) {
+      return data.keys().hasAll(['uid', 'email', 'displayName', 'role', 'createdAt', 'updatedAt'])
+        && data.keys().hasOnly(['uid', 'email', 'displayName', 'photoURL', 'role', 'createdAt', 'updatedAt'])
+        && isValidId(data.uid)
+        && isValidString(data.email, 3, 256)
+        && isValidString(data.displayName, 1, 120)
+        && isValidOptionalString(data, 'photoURL', 512)
+        && data.role in ['EMPLOYEE', 'MANAGER', 'ADMIN']
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    function isValidStringArray(arr, maxItems) {
+      return arr is list && arr.size() <= maxItems && (arr.size() == 0 || arr[0] is string);
+    }
+
+    function isValidInvoice(data) {
+      return data.keys().hasAll([
+          'invoiceId', 'ownerId', 'ownerEmail', 'fileName', 'mimeType', 'fileSize',
+          'storageMode', 'isDemo', 'currency', 'confidence', 'missingFields', 'riskFlags',
+          'riskLevel', 'recommendedAction', 'aiReason', 'arithmeticValid', 'taxValid',
+          'datesValid', 'duplicateDetected', 'escalationReasons', 'status', 'assignedTier',
+          'createdAt', 'updatedAt'
+        ])
+        && data.keys().hasOnly([
+          'invoiceId', 'ownerId', 'ownerEmail', 'ownerName', 'fileName', 'mimeType', 'fileSize',
+          'storageMode', 'isDemo', 'demoScenario', 'invoiceNumber', 'vendorName', 'vendorDetails',
+          'invoiceDate', 'dueDate', 'currency', 'subtotal', 'taxAmount', 'totalAmount',
+          'inrEquivalent', 'lineItems', 'confidence', 'missingFields', 'riskFlags',
+          'riskLevel', 'recommendedAction', 'aiReason', 'arithmeticValid', 'taxValid',
+          'datesValid', 'duplicateDetected', 'escalationReasons', 'ruleChecks', 'status',
+          'assignedTier', 'reviewerId', 'reviewerEmail', 'reviewerRole', 'reviewComment',
+          'reviewedAt', 'createdAt', 'updatedAt'
+        ])
+        && isValidId(data.invoiceId)
+        && isValidId(data.ownerId)
+        && isValidString(data.ownerEmail, 3, 256)
+        && isValidOptionalString(data, 'ownerName', 120)
+        && isValidString(data.fileName, 1, 256)
+        && isValidString(data.mimeType, 1, 100)
+        && data.fileSize is number && data.fileSize >= 0 && data.fileSize <= 10485760
+        && data.storageMode in ['FIRESTORE_PREVIEW', 'SERVER_DISK', 'SYNTHETIC_DEMO']
+        && data.isDemo is bool
+        && isValidOptionalString(data, 'demoScenario', 80)
+        && isValidOptionalString(data, 'invoiceNumber', 120)
+        && isValidOptionalString(data, 'vendorName', 200)
+        && isValidOptionalString(data, 'vendorDetails', 500)
+        && isValidOptionalString(data, 'invoiceDate', 40)
+        && isValidOptionalString(data, 'dueDate', 40)
+        && isValidString(data.currency, 1, 10)
+        && isValidOptionalNumber(data, 'subtotal')
+        && isValidOptionalNumber(data, 'taxAmount')
+        && isValidOptionalNumber(data, 'totalAmount')
+        && isValidOptionalNumber(data, 'inrEquivalent')
+        && (!('lineItems' in data) || (data.lineItems is list && data.lineItems.size() <= 50))
+        && data.confidence is number && data.confidence >= 0 && data.confidence <= 1
+        && isValidStringArray(data.missingFields, 20)
+        && isValidStringArray(data.riskFlags, 25)
+        && data.riskLevel in ['LOW', 'MEDIUM', 'HIGH']
+        && data.recommendedAction in ['AUTO_APPROVE', 'MANAGER_REVIEW', 'ADMIN_REVIEW', 'ESCALATE']
+        && isValidString(data.aiReason, 1, 1000)
+        && data.arithmeticValid is bool
+        && data.taxValid is bool
+        && data.datesValid is bool
+        && data.duplicateDetected is bool
+        && isValidStringArray(data.escalationReasons, 25)
+        && (!('ruleChecks' in data) || (data.ruleChecks is list && data.ruleChecks.size() <= 20))
+        && data.status in ['AUTO_APPROVED', 'PENDING_MANAGER', 'PENDING_ADMIN', 'ESCALATED', 'HUMAN_APPROVED', 'REJECTED']
+        && data.assignedTier in ['NONE', 'MANAGER', 'ADMIN']
+        && isValidOptionalString(data, 'reviewerId', 128)
+        && isValidOptionalString(data, 'reviewerEmail', 256)
+        && isValidOptionalString(data, 'reviewerRole', 40)
+        && isValidOptionalString(data, 'reviewComment', 1000)
+        && isValidOptionalString(data, 'reviewedAt', 64)
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    function isValidAutoApprovePayload(data) {
+      return data.confidence >= 0.90
+        && data.missingFields.size() == 0
+        && data.riskFlags.size() == 0
+        && data.escalationReasons.size() == 0
+        && data.arithmeticValid == true
+        && data.taxValid == true
+        && data.datesValid == true
+        && data.duplicateDetected == false;
+    }
+
+    function isValidInvoiceDocument(data) {
+      return data.keys().hasAll(['invoiceId', 'ownerId', 'fileName', 'mimeType', 'dataUrl', 'isDemo', 'createdAt'])
+        && data.keys().hasOnly(['invoiceId', 'ownerId', 'fileName', 'mimeType', 'dataUrl', 'isDemo', 'createdAt'])
+        && isValidId(data.invoiceId)
+        && isValidId(data.ownerId)
+        && isValidString(data.fileName, 1, 256)
+        && isValidString(data.mimeType, 1, 100)
+        && isValidString(data.dataUrl, 1, 750000)
+        && data.isDemo is bool
+        && data.createdAt is timestamp;
+    }
+
+    function isValidFingerprint(data) {
+      return data.keys().hasAll(['fingerprintId', 'vendorKey', 'invoiceNumberKey', 'invoiceId', 'ownerId', 'isDemo', 'createdAt'])
+        && data.keys().hasOnly(['fingerprintId', 'vendorKey', 'invoiceNumberKey', 'invoiceId', 'ownerId', 'isDemo', 'createdAt'])
+        && isValidId(data.fingerprintId)
+        && isValidString(data.vendorKey, 1, 200)
+        && isValidString(data.invoiceNumberKey, 1, 120)
+        && isValidId(data.invoiceId)
+        && isValidId(data.ownerId)
+        && data.isDemo is bool
+        && data.createdAt is timestamp;
+    }
+
+    function isValidWorkflowRule(data) {
+      return data.keys().hasAll([
+          'ruleId', 'autoApproveMaxInr', 'managerMaxInr', 'minConfidence',
+          'requireTaxConsistency', 'blockDuplicateVendorInvoices', 'updatedBy', 'updatedAt'
+        ])
+        && data.keys().hasOnly([
+          'ruleId', 'autoApproveMaxInr', 'managerMaxInr', 'minConfidence',
+          'requireTaxConsistency', 'blockDuplicateVendorInvoices', 'updatedBy', 'updatedAt'
+        ])
+        && isValidId(data.ruleId)
+        && data.autoApproveMaxInr is number && data.autoApproveMaxInr >= 0 && data.autoApproveMaxInr <= 1000000
+        && data.managerMaxInr is number && data.managerMaxInr >= data.autoApproveMaxInr && data.managerMaxInr <= 10000000
+        && data.minConfidence is number && data.minConfidence >= 0.5 && data.minConfidence <= 0.99
+        && data.requireTaxConsistency is bool
+        && data.blockDuplicateVendorInvoices is bool
+        && isValidString(data.updatedBy, 3, 256)
+        && data.updatedAt is timestamp;
+    }
+
+    function isValidAuditLog(data) {
+      return data.keys().hasAll([
+          'logId', 'invoiceId', 'invoiceOwnerId', 'action', 'actorUid', 'actorEmail',
+          'actorRole', 'previousStatus', 'newStatus', 'reason', 'isDemo', 'timestamp'
+        ])
+        && data.keys().hasOnly([
+          'logId', 'invoiceId', 'invoiceOwnerId', 'invoiceNumber', 'action', 'actorUid', 'actorEmail',
+          'actorRole', 'previousStatus', 'newStatus', 'reason', 'isDemo', 'timestamp'
+        ])
+        && isValidId(data.logId)
+        && isValidId(data.invoiceId)
+        && isValidId(data.invoiceOwnerId)
+        && isValidOptionalString(data, 'invoiceNumber', 120)
+        && isValidString(data.action, 1, 80)
+        && isValidId(data.actorUid)
+        && isValidString(data.actorEmail, 3, 256)
+        && data.actorRole in ['EMPLOYEE', 'MANAGER', 'ADMIN', 'SYSTEM']
+        && isValidString(data.previousStatus, 1, 40)
+        && isValidString(data.newStatus, 1, 40)
+        && isValidString(data.reason, 1, 1000)
+        && data.isDemo is bool
+        && data.timestamp is timestamp;
+    }
+
+    // 1. Users Collection (PII isolated, self-role escalation blocked)
+    match /users/{userId} {
+      allow get: if isValidId(userId) && (isOwner(userId) || isAdmin());
+      allow list: if isAdmin();
+      allow create: if emailVerified()
+        && isValidId(userId)
+        && userId == request.auth.uid
+        && isValidUser(incoming())
+        && incoming().uid == request.auth.uid
+        && incoming().createdAt == request.time
+        && incoming().updatedAt == request.time
+        && (incoming().role == 'EMPLOYEE' || isBootstrappedAdmin());
+      allow update: if emailVerified()
+        && isValidId(userId)
+        && isValidUser(incoming())
+        && incoming().uid == existing().uid
+        && incoming().email == existing().email
+        && incoming().createdAt == existing().createdAt
+        && incoming().updatedAt == request.time
+        && (
+          (isAdmin() && incoming().diff(existing()).affectedKeys().hasOnly(['role', 'displayName', 'photoURL', 'updatedAt']))
+          || (isOwner(userId) && incoming().role == existing().role && incoming().diff(existing()).affectedKeys().hasOnly(['displayName', 'photoURL', 'updatedAt']))
+        );
+      allow delete: if false;
+    }
+
+    // 2. Invoices Collection
+    match /invoices/{invoiceId} {
+      allow get: if isValidId(invoiceId) && emailVerified() && (existing().ownerId == request.auth.uid || isManagerOrAdmin());
+      allow list: if emailVerified() && (resource.data.ownerId == request.auth.uid || isManagerOrAdmin());
+      allow create: if emailVerified()
+        && isValidId(invoiceId)
+        && isValidInvoice(incoming())
+        && incoming().invoiceId == invoiceId
+        && incoming().ownerId == request.auth.uid
+        && incoming().createdAt == request.time
+        && incoming().updatedAt == request.time
+        && incoming().status in ['AUTO_APPROVED', 'PENDING_MANAGER', 'PENDING_ADMIN', 'ESCALATED']
+        && (incoming().status != 'AUTO_APPROVED' || isValidAutoApprovePayload(incoming()));
+      allow update: if emailVerified()
+        && isValidId(invoiceId)
+        && isValidInvoice(incoming())
+        && incoming().invoiceId == existing().invoiceId
+        && incoming().ownerId == existing().ownerId
+        && incoming().ownerEmail == existing().ownerEmail
+        && incoming().createdAt == existing().createdAt
+        && incoming().updatedAt == request.time
+        && incoming().reviewerId == request.auth.uid
+        && incoming().diff(existing()).affectedKeys().hasOnly([
+          'status', 'assignedTier', 'reviewerId', 'reviewerEmail', 'reviewerRole',
+          'reviewComment', 'reviewedAt', 'updatedAt'
+        ])
+        && (
+          isAdmin()
+          || (
+            isManager()
+            && (existing().isDemo == true || existing().ownerId != request.auth.uid)
+            && existing().status in ['PENDING_MANAGER', 'ESCALATED']
+            && existing().assignedTier != 'ADMIN'
+            && incoming().status in ['HUMAN_APPROVED', 'REJECTED', 'ESCALATED']
+          )
+        );
+      allow delete: if isAdmin() && isValidId(invoiceId) && existing().isDemo == true;
+    }
+
+    // 3. Protected Invoice Document Payloads
+    match /invoice_documents/{invoiceId} {
+      allow get: if isValidId(invoiceId) && emailVerified() && (existing().ownerId == request.auth.uid || isManagerOrAdmin());
+      allow list: if false;
+      allow create: if emailVerified()
+        && isValidId(invoiceId)
+        && isValidInvoiceDocument(incoming())
+        && incoming().invoiceId == invoiceId
+        && incoming().ownerId == request.auth.uid
+        && incoming().createdAt == request.time;
+      allow update: if false;
+      allow delete: if isAdmin() && isValidId(invoiceId) && existing().isDemo == true;
+    }
+
+    // 4. Non-PII Invoice Fingerprints for Duplicate Detection
+    match /invoice_fingerprints/{fingerprintId} {
+      allow get: if isValidId(fingerprintId) && emailVerified();
+      allow list: if emailVerified();
+      allow create: if emailVerified()
+        && isValidId(fingerprintId)
+        && isValidFingerprint(incoming())
+        && incoming().fingerprintId == fingerprintId
+        && incoming().ownerId == request.auth.uid
+        && incoming().createdAt == request.time;
+      allow update: if false;
+      allow delete: if isAdmin() && isValidId(fingerprintId) && existing().isDemo == true;
+    }
+
+    // 5. Workflow Rules Configuration
+    match /workflow_rules/{ruleId} {
+      allow get: if isValidId(ruleId) && emailVerified();
+      allow list: if emailVerified();
+      allow create, update: if isAdmin()
+        && isValidId(ruleId)
+        && isValidWorkflowRule(incoming())
+        && incoming().ruleId == ruleId
+        && incoming().updatedAt == request.time;
+      allow delete: if false;
+    }
+
+    // 6. Immutable Audit Logs
+    match /audit_logs/{logId} {
+      allow get: if isValidId(logId) && emailVerified() && (existing().invoiceOwnerId == request.auth.uid || existing().actorUid == request.auth.uid || isManagerOrAdmin());
+      allow list: if emailVerified() && (resource.data.invoiceOwnerId == request.auth.uid || resource.data.actorUid == request.auth.uid || isManagerOrAdmin());
+      allow create: if emailVerified()
+        && isValidId(logId)
+        && isValidAuditLog(incoming())
+        && incoming().logId == logId
+        && incoming().actorUid == request.auth.uid
+        && incoming().timestamp == request.time;
+      allow update, delete: if false;
+    }
+  }
+}

@@ -1,0 +1,6 @@
+{
+  "name": "InvoiceFlow AI",
+  "description": "Intelligent Invoice Processing. Human-Controlled Decisions. Enterprise invoice extraction, deterministic validation, and role-based approval workflows.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
